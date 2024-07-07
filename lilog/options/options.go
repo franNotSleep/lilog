@@ -15,6 +15,27 @@ var ErrMaxLigLogOptionsPayloadSize = errors.New("maximum payload size exceeded."
 func (n ServerName) Bytes() []byte  { return []byte(n) }
 func (n ServerName) String() string { return string(n) }
 
+func (sn ServerName) WriteTo(w io.Writer) (int64, error) {
+	err := binary.Write(w, binary.BigEndian, ServerNameType)
+
+	if err != nil {
+		return 0, nil
+	}
+
+	var n int64 = 1
+
+	err = binary.Write(w, binary.BigEndian, uint32(len(sn)))
+
+	if err != nil {
+		return n, err
+	}
+
+	n += 4
+
+	o, err := w.Write([]byte(sn))
+	return int64(o) + n, err
+}
+
 func (sn *ServerName) ReadFrom(r io.Reader) (int64, error) {
 	var n int64 = 1
 

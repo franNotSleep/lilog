@@ -8,5 +8,6 @@ import (
 type Payload interface {
   fmt.Stringer
   io.ReaderFrom
+  io.WriterTo
   Bytes() []byte
 }
