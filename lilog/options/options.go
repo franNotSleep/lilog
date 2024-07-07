@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+
+	"github.com/frannotsleep/lilog/types"
 )
 
 const (
@@ -60,4 +62,31 @@ func (sn *ServerName) ReadFrom(r io.Reader) (int64, error) {
 
 	*sn = ServerName(buf)
 	return n + int64(o), nil
+}
+
+func Decode(opts *LigLogOptions, r io.Reader) (uint8, error) {
+	var typ uint8
+
+	err := binary.Read(r, binary.BigEndian, &typ)
+
+	if err != nil {
+		return 0, err
+	}
+
+	var payload types.Payload
+	switch typ {
+	case ServerNameType:
+		payload = new(ServerName)
+		opts.ServerName = payload.(*ServerName)
+	default:
+		return typ, errors.New("invalid type.")
+	}
+
+	_, err = payload.ReadFrom(r)
+
+	if err != nil {
+		return typ, err
+	}
+
+	return typ, nil
 }
