@@ -4,60 +4,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
+
+	"github.com/frannotsleep/lilog/options"
+	"github.com/frannotsleep/lilog/types"
 )
-
-const (
-	ServerNameType              uint8 = iota + 1
-	MaxLigLogOptionsPayloadSize       = 1 << 20 // 1 MB
-)
-
-var ErrMaxLigLogOptionsPayloadSize = errors.New("maximum payload size exceeded.")
-
-type ServerName string
-
-type LiLogOptions struct {
-	ServerName ServerName
-}
-
-type Payload interface {
-	fmt.Stringer
-	// io.WriterTo
-	io.ReaderFrom
-	Bytes() []byte
-}
-
-func (n ServerName) Bytes() []byte  { return []byte(n) }
-func (n ServerName) String() string { return string(n) }
-
-func (sn *ServerName) ReadFrom(r io.Reader) (int64, error) {
-	var n int64 = 1
-
-	var size uint32
-	err := binary.Read(r, binary.BigEndian, &size)
-
-	if err != nil {
-		return n, err
-	}
-
-	n += 4
-	if size > MaxLigLogOptionsPayloadSize {
-    log.Printf("invalid payload size: %d", size)
-		return n, ErrMaxLigLogOptionsPayloadSize
-	}
-
-	buf := make([]byte, size)
-	o, err := r.Read(buf)
-
-	if err != nil {
-		return n, err
-	}
-
-	*sn = ServerName(buf)
-	return n + int64(o), nil
-}
 
 func main() {
 	addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:4119")
@@ -85,6 +37,7 @@ func main() {
 
 		go func(c *net.TCPConn) {
 			defer c.Close()
+			var opts = options.LigLogOptions{}
 			var typ uint8
 			err := binary.Read(c, binary.BigEndian, &typ)
 
@@ -93,10 +46,11 @@ func main() {
 				return
 			}
 
-			var payload Payload
+			var payload types.Payload
 			switch typ {
-			case ServerNameType:
-				payload = new(ServerName)
+			case options.ServerNameType:
+				payload = new(options.ServerName)
+				opts.ServerName = payload.(*options.ServerName)
 			default:
 				log.Println(errors.New(fmt.Sprintf("unknown type: %d", typ)))
 				return
@@ -109,7 +63,7 @@ func main() {
 				return
 			}
 
-			log.Printf("payload: %v\n", payload)
+			log.Printf("opts: %+v\n", opts)
 		}(conn)
 	}
 }
