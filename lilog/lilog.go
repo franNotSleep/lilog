@@ -44,6 +44,7 @@ func (sn *ServerName) ReadFrom(r io.Reader) (int64, error) {
 
 	n += 4
 	if size > MaxLigLogOptionsPayloadSize {
+    log.Printf("invalid payload size: %d", size)
 		return n, ErrMaxLigLogOptionsPayloadSize
 	}
 
