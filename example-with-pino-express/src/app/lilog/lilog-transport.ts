@@ -10,7 +10,7 @@ type Options = {
 export default async (_: Options) => {
   const connOptions: net.NetConnectOpts = {
     host: '127.0.0.1',
-    port: 41169,
+    port: 4119,
   }
 
   const conn = net.connect(connOptions)
