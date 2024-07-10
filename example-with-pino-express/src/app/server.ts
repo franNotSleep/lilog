@@ -22,18 +22,7 @@ app.post('/ping', async (req, res) => {
 })
 
 function createLogger() {
-  const transport = pino.transport({
-    targets: [
-      {
-        target: '../../build/app/lilog/lilog-transport',
-        options: {
-          filename: `${Date.now().toString()}.txt`
-        }
-      }
-    ]
-  })
-
-  return pino(transport);
+  return pino();
 }
 
 export { app }
