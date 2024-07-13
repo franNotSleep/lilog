@@ -1,23 +1,21 @@
-import { once } from "events";
 import { Writable } from "stream";
 import dgram from "node:dgram";
+//import { once } from "events";
 
-type Options = {
-  filename: string;
+type DGramStreamOptions = {
+  port: number;
+  highWaterMark: number;
 };
 
 class DGramStream extends Writable {
   private server: dgram.Socket;
-  constructor(
-    type: dgram.SocketType,
-    callback?: (msg: Buffer, rinfo: dgram.RemoteInfo) => void,
-  ) {
-    super();
-    this.server = dgram.createSocket(type, callback);
-  }
+  private chunks: any[];
 
-  async waitToConnect() {
-    await once(this.server, "connect");
+  constructor({ highWaterMark }: DGramStreamOptions) {
+    super({ highWaterMark });
+
+    this.chunks = [];
+    this.server = dgram.createSocket("udp4");
   }
 
   _write(
@@ -25,13 +23,24 @@ class DGramStream extends Writable {
     _: BufferEncoding,
     callback: (error?: Error | null) => void,
   ): void {
-    process.stdout.write(chunk);
-    callback
+    this.chunks.push(chunk);
+    this.server.send(Buffer.concat(this.chunks), 4119, "localhost", callback);
+    this.chunks = [];
+  }
+
+  _final(callback: (error?: Error | null) => void): void {
+    this.server.send(Buffer.concat(this.chunks), 4119, "localhost", callback);
+  }
+
+  _destroy(
+    error: Error | null,
+    callback: (error?: Error | null) => void,
+  ): void {
+    callback(error);
   }
 }
 
-export default async (_: Options) => {
-  const server = new DGramStream("udp4");
-  await server.waitToConnect();
+export default () => {
+  const server = new DGramStream({ port: 4111, highWaterMark: 1024 });
   return server;
 };

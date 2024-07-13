@@ -28,6 +28,7 @@ func main() {
 			log.Println(err)
 			return
 		}
+
     log.Println(string(buf[:n]))
 	}
 }
