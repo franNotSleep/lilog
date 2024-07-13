@@ -8,8 +8,8 @@ import (
 
 func main() {
 	memDBAdapter := db.NewMemKVSAdapter()
-	api.NewApplication(memDBAdapter)
-	server := cmdServer.NewAdapter(memDBAdapter, "127.0.0.1:4119")
+  app := api.NewApplication(memDBAdapter)
+	server := cmdServer.NewAdapter(memDBAdapter, "127.0.0.1:4119", app)
 
 	server.Run()
 }

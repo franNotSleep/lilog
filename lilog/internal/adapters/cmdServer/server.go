@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/frannotsleep/lilog/internal/application/core/domain"
 	"github.com/frannotsleep/lilog/internal/application/ports"
 )
 
@@ -14,6 +15,7 @@ type ConnOptions struct {
 
 type Adapter struct {
 	db          ports.DBPort
+	app         ports.APIPort
 	connOptions ConnOptions
 }
 
@@ -43,9 +45,9 @@ type data struct {
 	Message      string   `json:"message"`
 }
 
-func NewAdapter(db ports.DBPort, address string) Adapter {
+func NewAdapter(db ports.DBPort, address string, app ports.APIPort) Adapter {
 	connOpts := ConnOptions{address: address}
-	return Adapter{db: db, connOptions: connOpts}
+	return Adapter{db: db, connOptions: connOpts, app: app}
 }
 
 func (a Adapter) Run() {
@@ -68,12 +70,29 @@ func (a Adapter) Run() {
 		}
 
 		data := data{}
+
 		if err := json.Unmarshal(buf[:n], &data); err != nil {
 			log.Println(err)
 			return
 		}
 
-		log.Println(string(buf[:n]))
-		log.Printf("%+v\n", data)
+    invoice := domain.NewInvoice(data.Time, data.Level, data.PID, data.Hostname, data.ResponseTime, data.Message, domain.InvoiceRequest(data.Request), domain.InvoiceResponse(data.Response))
+
+    err = a.app.NewInvoice(invoice)
+
+    if err != nil {
+      log.Println(err)
+      return
+    }
+
+    invoices, err := a.app.GetInvoices(invoice.PID)
+
+    if err != nil {
+      log.Println(err)
+      return
+    }
+
+    log.Printf("======== PID %d =======\n%+v\n======== PID %d =======", invoice.PID, invoices, invoice.PID)
+
 	}
 }
