@@ -23,9 +23,17 @@ class DGramStream extends Writable {
     _: BufferEncoding,
     callback: (error?: Error | null) => void,
   ): void {
-    this.chunks.push(chunk);
-    this.server.send(Buffer.concat(this.chunks), 4119, "localhost", callback);
-    this.chunks = [];
+    let start = 0;
+    for (let i = 0; i < chunk.length; i++) {
+      const byte = chunk[i];
+
+      if (byte === 10) {
+        this.server.send(chunk.slice(start, i), 4119, "localhost");
+        start = i;
+      }
+    }
+
+    callback();
   }
 
   _final(callback: (error?: Error | null) => void): void {

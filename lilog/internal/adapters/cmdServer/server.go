@@ -2,9 +2,13 @@ package cmdServer
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
+	"os"
+	"time"
 
+	"github.com/fatih/color"
 	"github.com/frannotsleep/lilog/internal/application/core/domain"
 	"github.com/frannotsleep/lilog/internal/application/ports"
 )
@@ -36,7 +40,7 @@ type response struct {
 
 type data struct {
 	Time         int64    `json:"time"`
-	Level        int32    `json:"level"`
+	Level        uint8    `json:"level"`
 	PID          int32    `json:"pid"`
 	Hostname     string   `json:"hostname"`
 	Request      request  `json:"req"`
@@ -65,34 +69,53 @@ func (a Adapter) Run() {
 		n, _, err := server.ReadFrom(buf)
 
 		if err != nil {
-			log.Println(err)
-			return
+			fmt.Fprint(os.Stderr, err)
+			continue
 		}
 
 		data := data{}
 
 		if err := json.Unmarshal(buf[:n], &data); err != nil {
-			log.Println(err)
-			return
+			fmt.Fprint(os.Stderr, err)
+			continue
 		}
 
-    invoice := domain.NewInvoice(data.Time, data.Level, data.PID, data.Hostname, data.ResponseTime, data.Message, domain.InvoiceRequest(data.Request), domain.InvoiceResponse(data.Response))
+		invoice := domain.NewInvoice(data.Time, data.Level, data.PID, data.Hostname, data.ResponseTime, data.Message, domain.InvoiceRequest(data.Request), domain.InvoiceResponse(data.Response))
 
-    err = a.app.NewInvoice(invoice)
+		err = a.app.NewInvoice(invoice)
 
-    if err != nil {
-      log.Println(err)
-      return
-    }
+		if err != nil {
+			fmt.Fprint(os.Stderr, err)
+			continue
+		}
 
-    invoices, err := a.app.GetInvoices(invoice.PID)
+		invoices, err := a.app.GetInvoices(invoice.PID)
 
-    if err != nil {
-      log.Println(err)
-      return
-    }
+		if err != nil {
+			fmt.Fprint(os.Stderr, err)
+			continue
+		}
 
-    log.Printf("======== PID %d =======\n%+v\n======== PID %d =======", invoice.PID, invoices, invoice.PID)
+		displayInvoices(invoices)
+	}
+}
 
+func displayInvoices(invs []domain.Invoice) {
+
+	mapLevelToStr := map[uint8]string{
+		10: color.New(color.BgBlue).Sprint("DEBUG"),
+		20: color.New(color.BgGreen).Sprint("INFO"),
+		30: color.New(color.BgHiGreen).Sprint("NOTICE"),
+		40: color.New(color.BgYellow).Sprint("WARN"),
+		50: color.New(color.BgRed).Sprint("ERROR"),
+		60: color.New(color.BgHiRed).Sprint("CRITIC"),
+		70: color.New(color.BgMagenta).Sprint("ALERT"),
+		80: color.New(color.BgHiMagenta).Sprint("EMERG"),
+	}
+
+	for _, inv := range invs {
+		localTime := time.UnixMilli(inv.Time).Local()
+		level := mapLevelToStr[inv.Level]
+		fmt.Printf("\n[[ [%v] %s ]]\n", localTime, level)
 	}
 }

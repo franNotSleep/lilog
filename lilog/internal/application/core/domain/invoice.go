@@ -17,7 +17,7 @@ type InvoiceResponse struct {
 
 type Invoice struct {
 	Time         int64    `json:"time"`
-	Level        int32   `json:"level"`
+	Level        uint8   `json:"level"`
 	PID          int32    `json:"pid"`
 	Hostname     string   `json:"hostname"`
 	InvoiceRequest      InvoiceRequest  `json:"request"`
@@ -34,6 +34,6 @@ func NewInvoiceRequest(method string, url string, query map[string]string, param
 	return InvoiceRequest{Method: method, URL: url, Query: query, Params: params, Headers: headers, RemoteAddress: remoteAddress, RemotePort: remotePort}
 }
 
-func NewInvoice(time int64, level int32, pid int32, hostname string, responseTime int32, message string, request InvoiceRequest, response InvoiceResponse) Invoice {
+func NewInvoice(time int64, level uint8, pid int32, hostname string, responseTime int32, message string, request InvoiceRequest, response InvoiceResponse) Invoice {
 	return Invoice{Time: time, Level: level, PID: pid, Hostname: hostname, InvoiceRequest: request, InvoiceResponse: response}
 }
