@@ -16,14 +16,14 @@ type InvoiceResponse struct {
 }
 
 type Invoice struct {
-	Time         int64    `json:"time"`
-	Level        uint8   `json:"level"`
-	PID          int32    `json:"pid"`
-	Hostname     string   `json:"hostname"`
-	InvoiceRequest      InvoiceRequest  `json:"request"`
-	InvoiceResponse     InvoiceResponse `json:"response"`
-	ResponseTime int32    `json:"response_time"`
-	Message      string   `json:"message"`
+	Time            int64           `json:"time"`
+	Level           uint8           `json:"level"`
+	PID             int32           `json:"pid"`
+	Hostname        string          `json:"hostname"`
+	InvoiceRequest  InvoiceRequest  `json:"request"`
+	InvoiceResponse InvoiceResponse `json:"response"`
+	ResponseTime    int32           `json:"response_time"`
+	Message         string          `json:"message"`
 }
 
 func NewInvoiceResponse(statusCode int32, headers map[string]string) InvoiceResponse {
@@ -35,5 +35,5 @@ func NewInvoiceRequest(method string, url string, query map[string]string, param
 }
 
 func NewInvoice(time int64, level uint8, pid int32, hostname string, responseTime int32, message string, request InvoiceRequest, response InvoiceResponse) Invoice {
-	return Invoice{Time: time, Level: level, PID: pid, Hostname: hostname, InvoiceRequest: request, InvoiceResponse: response}
+	return Invoice{Time: time, Level: level, PID: pid, Hostname: hostname, Message: message, InvoiceRequest: request, InvoiceResponse: response, ResponseTime: responseTime}
 }

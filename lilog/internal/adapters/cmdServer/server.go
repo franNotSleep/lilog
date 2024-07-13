@@ -46,7 +46,7 @@ type data struct {
 	Request      request  `json:"req"`
 	Response     response `json:"res"`
 	ResponseTime int32    `json:"responseTime"`
-	Message      string   `json:"message"`
+	Message      string   `json:"msg"`
 }
 
 func NewAdapter(db ports.DBPort, address string, app ports.APIPort) Adapter {
@@ -89,19 +89,24 @@ func (a Adapter) Run() {
 			continue
 		}
 
-		invoices, err := a.app.GetInvoices(invoice.PID)
+		displayInvoice(invoice)
 
-		if err != nil {
-			fmt.Fprint(os.Stderr, err)
-			continue
-		}
+		//	invoices, err := a.app.GetInvoices(invoice.PID)
 
-		displayInvoices(invoices)
+		//		if err != nil {
+		//			fmt.Fprint(os.Stderr, err)
+		//			continue
+		//		}
 	}
 }
 
 func displayInvoices(invs []domain.Invoice) {
+	for _, inv := range invs {
+		displayInvoice(inv)
+	}
+}
 
+func displayInvoice(inv domain.Invoice) {
 	mapLevelToStr := map[uint8]string{
 		10: color.New(color.BgBlue).Sprint("DEBUG"),
 		20: color.New(color.BgGreen).Sprint("INFO"),
@@ -113,9 +118,11 @@ func displayInvoices(invs []domain.Invoice) {
 		80: color.New(color.BgHiMagenta).Sprint("EMERG"),
 	}
 
-	for _, inv := range invs {
-		localTime := time.UnixMilli(inv.Time).Local()
-		level := mapLevelToStr[inv.Level]
-		fmt.Printf("\n[[ [%v] %s ]]\n", localTime, level)
-	}
+	localTime := time.UnixMilli(inv.Time).Local().Format(time.ANSIC)
+	level := mapLevelToStr[inv.Level]
+	fmt.Printf("\n[[ [%v] %s (%d): %s ]]\n", localTime, level, inv.PID, inv.Message)
+	fmt.Printf("|%-14s|%-10s|%-20s|\n", "Response Time", "Method", "URL")
+  fmt.Printf("---------------|----------|--------------------|\n")
+	fmt.Printf("|%-14d|%-10s|%-20s|\n", inv.ResponseTime, inv.InvoiceRequest.Method, inv.InvoiceRequest.URL)
+	color.Green("Response Time: %d (ms)", inv.ResponseTime)
 }

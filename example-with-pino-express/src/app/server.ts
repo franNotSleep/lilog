@@ -23,11 +23,14 @@ app.use(
   }),
 );
 
-app.get("/ping/:level", async (req, res) => {
+app.get("/ping/:level/:ms", async (req, res) => {
   let level: pino.Level = req.params.level as any;
 
   req.log[level]("error");
-  return res.status(200).json("pong");
+
+  setTimeout(() => {
+    return res.status(200).json("pong");
+  }, Number(req.params.ms));
 });
 
 app.post("/ping", async (_, res) => {
