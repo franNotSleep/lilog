@@ -20,7 +20,7 @@ func (app *Application) NewInvoice(invoice domain.Invoice) error {
 	return err
 }
 
-func (app *Application) GetInvoices(pid int64) ([]domain.Invoice, error) {
+func (app *Application) GetInvoices(pid int32) ([]domain.Invoice, error) {
 	invoices, err := app.db.Get(pid)
 	return invoices, err
 }
