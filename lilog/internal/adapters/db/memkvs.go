@@ -13,7 +13,7 @@ func NewMemKVSAdapter() *MemKVSAdapter {
 }
 
 func (m *MemKVSAdapter) Save(invoice domain.Invoice) error {
-	if len(m.kvs[invoice.PID]) < 0 {
+	if len(m.kvs[invoice.PID]) > 0 {
 		m.kvs[invoice.PID] = append(m.kvs[invoice.PID], invoice)
 	} else {
 		m.kvs[invoice.PID] = []domain.Invoice{invoice}
