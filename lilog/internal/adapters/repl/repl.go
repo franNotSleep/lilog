@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 	"os"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/frannotsleep/lilog/internal/application/core/domain"
@@ -25,7 +25,12 @@ func (a Adapter) Run() {
 
 		switch {
 		case op == RPIDS:
-			println("read one")
+			pids, err := a.api.GetPIDs()
+			if err != nil {
+				log.Printf("a.api.GetPIDs(): %v", err)
+				continue
+			}
+			displayPIDS(pids)
 		case op == RONE:
 			println("read one")
 		case op == RALL:
@@ -54,6 +59,7 @@ func displayOptions(op *OP, pid *int32) {
 	}{
 		{msg: "Read All Logs", code: RALL},
 		{msg: "Read One Logs", code: RONE},
+		{msg: "Read All PIDs", code: RPIDS},
 		{msg: "Exit", code: EXIT},
 	}
 
@@ -63,6 +69,12 @@ func displayOptions(op *OP, pid *int32) {
 	}
 
 	fmt.Scanf("%d %d\n", op, pid)
+}
+
+func displayPIDS(pids []int32) {
+	for _, pid := range pids {
+		fmt.Printf("|%6.2d|\n", pid)
+	}
 }
 
 func displayInvoices(invs []domain.Invoice) {
