@@ -24,11 +24,12 @@ func (a Adapter) Run() {
 		displayOptions(&op, &pid)
 
 		switch {
+		case op == RPIDS:
+			println("read one")
 		case op == RONE:
 			println("read one")
 		case op == RALL:
 			invoices, err := a.api.GetInvoices(pid)
-
 			if err != nil {
 				log.Printf("a.api.GetInvoices(): %v", err)
 				continue
