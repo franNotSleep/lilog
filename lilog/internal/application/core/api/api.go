@@ -24,3 +24,7 @@ func (app *Application) GetInvoices(pid int32) ([]domain.Invoice, error) {
 	invoices, err := app.db.Get(pid)
 	return invoices, err
 }
+
+func (app *Application) GetPIDs() ([]int32, error) {
+	return app.db.PIDs()
+}

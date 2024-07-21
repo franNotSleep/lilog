@@ -22,7 +22,21 @@ func (m *MemKVSAdapter) Save(invoice domain.Invoice) error {
 	return nil
 }
 
-func (m *MemKVSAdapter) Get(pid int32) ([]domain.Invoice, error){
-  invoices :=  m.kvs[pid]
-  return invoices, nil
+func (m *MemKVSAdapter) Get(pid int32) ([]domain.Invoice, error) {
+	invoices := m.kvs[pid]
+	return invoices, nil
+}
+
+func (m *MemKVSAdapter) PIDs() ([]int32, error) {
+	keys := make([]int32, 0, len(m.kvs))
+	for k := range m.kvs {
+		keys = append(keys, k)
+	}
+
+	pids := make([]int32, 0, len(m.kvs))
+	for pid := range m.kvs {
+		pids = append(pids, pid)
+	}
+
+	return pids, nil
 }
