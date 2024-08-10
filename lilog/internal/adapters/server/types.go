@@ -60,8 +60,41 @@ const (
 type ReadReq struct {
 	OpCode opCode
 	Server string
-	From   int64
-	To     int64
+	From   uint64
+	To     uint64
+}
+
+func (q ReadReq) MarshalBinary() ([]byte, error) {
+	cap := 2 + 2 + len(q.Server) + 1 + 64 + 64
+	b := new(bytes.Buffer)
+	b.Grow(cap)
+
+	err := binary.Write(b, binary.BigEndian, q.OpCode)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = b.WriteString(q.Server)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.WriteByte(0)
+	if err != nil {
+		return nil, err
+	}
+
+	err = binary.Write(b, binary.BigEndian, q.From)
+	if err != nil {
+		return nil, err
+	}
+
+	err = binary.Write(b, binary.BigEndian, q.To)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
 }
 
 func (q *ReadReq) UnmarshalBinary(p []byte) error {
@@ -85,14 +118,14 @@ func (q *ReadReq) UnmarshalBinary(p []byte) error {
 	}
 	q.Server = strings.TrimRight(server, "\x00")
 
-	var from int64
+	var from uint64
 	err = binary.Read(r, binary.BigEndian, &from)
 	if err != nil {
 		return errors.New("Invalid Read Request.")
 	}
 	q.From = from
 
-	var to int64
+	var to uint64
 	err = binary.Read(r, binary.BigEndian, &to)
 	if err != nil {
 		return errors.New("Invalid Read Request.")
