@@ -1,7 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
+	"errors"
+	"strings"
 
 	"github.com/frannotsleep/lilog/internal/application/ports"
 )
@@ -41,4 +45,59 @@ type data struct {
 	Response     response `json:"res"`
 	ResponseTime int32    `json:"responseTime"`
 	Message      string   `json:"msg"`
+}
+
+type opCode uint16
+
+const (
+	OpRA opCode = iota + 1
+	OpRO
+	OpData
+	OpAck
+	OpErr
+)
+
+type ReadReq struct {
+	OpCode opCode
+	Server string
+	From   int64
+	To     int64
+}
+
+func (q *ReadReq) UnmarshalBinary(p []byte) error {
+	r := bytes.NewBuffer(p)
+
+	var code opCode
+
+	err := binary.Read(r, binary.BigEndian, &code)
+	if err != nil {
+		return err
+	}
+
+	if code != OpRA || code != OpRO {
+		return errors.New("Invalid Read Request.")
+	}
+	q.OpCode = code
+
+	server, err := r.ReadString(0)
+	if err != nil {
+		return errors.New("Invalid Read Request.")
+	}
+	q.Server = strings.TrimRight(server, "\x00")
+
+	var from int64
+	err = binary.Read(r, binary.BigEndian, &from)
+	if err != nil {
+		return errors.New("Invalid Read Request.")
+	}
+	q.From = from
+
+	var to int64
+	err = binary.Read(r, binary.BigEndian, &to)
+	if err != nil {
+		return errors.New("Invalid Read Request.")
+	}
+	q.To = to
+
+	return nil
 }

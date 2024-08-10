@@ -44,11 +44,6 @@ func (a Adapter) serve(conn net.PacketConn) error {
 			continue
 		}
 
-//		isNotAllowedClient := !a.connConfig.isAllowedClient(clientAddr.String())
-//		if isNotAllowedClient {
-//			continue
-//		}
-
 		go a.handle(buf[:n])
 	}
 }
@@ -68,13 +63,4 @@ func (a Adapter) handle(buf []byte) {
 		log.Printf("a.api.NewInvoice(): %v\n", err)
 		return
 	}
-}
-
-func (c ConnConfig) isAllowedClient(clientAddr string) bool {
-	for _, addr := range c.AllowedClients {
-		if addr == clientAddr {
-			return true
-		}
-	}
-	return false
 }

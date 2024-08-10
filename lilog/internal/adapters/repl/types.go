@@ -17,6 +17,6 @@ type OP uint16
 const (
 	RALL OP = iota + 1
 	RONE
-  RPIDS
+	RPIDS
 	EXIT
 )
