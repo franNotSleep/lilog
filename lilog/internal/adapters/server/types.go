@@ -18,6 +18,15 @@ type Adapter struct {
 	listeners  []net.Addr
 }
 
+func (a Adapter) findListener(addr net.Addr) int {
+	for i, listenerAddr := range a.listeners {
+		if listenerAddr.String() == addr.String() {
+			return i
+		}
+	}
+	return -1
+}
+
 type ConnConfig struct {
 	Address        string
 	AllowedClients []string

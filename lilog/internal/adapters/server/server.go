@@ -13,7 +13,7 @@ import (
 )
 
 func NewAdapter(api ports.APIPort, connConfig ConnConfig) Adapter {
-	return Adapter{api: api, connConfig: connConfig}
+	return Adapter{api: api, connConfig: connConfig, listeners: []net.Addr{}}
 }
 
 func (a Adapter) ListenAndServe() error {
@@ -79,7 +79,7 @@ func (a Adapter) handle(buf []byte) {
 	}
 }
 
-func (a Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Addr) {
+func (a *Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Addr) {
 	rq := ReadReq{}
 	rq.UnmarshalBinary(bytes)
 
@@ -97,6 +97,10 @@ func (a Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Add
 			}
 			conn.WriteTo(data, clientAddr)
 		}
+	}
+
+	if rq.KeepListening != 0 && a.findListener(clientAddr) == -1 {
+		a.listeners = append(a.listeners, clientAddr)
 	}
 }
 
