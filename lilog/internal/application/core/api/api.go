@@ -15,16 +15,16 @@ func NewApplication(db ports.DBPort) *Application {
 	}
 }
 
-func (app *Application) NewInvoice(invoice domain.Invoice) error {
-	err := app.db.Save(invoice)
+func (app *Application) NewInvoice(server string, invoice domain.Invoice) error {
+	err := app.db.Save(server, invoice)
 	return err
 }
 
-func (app *Application) GetInvoices(pid int32) ([]domain.Invoice, error) {
-	invoices, err := app.db.Get(pid)
+func (app *Application) GetInvoices(server string) ([]domain.Invoice, error) {
+	invoices, err := app.db.Get(server)
 	return invoices, err
 }
 
-func (app *Application) GetPIDs() ([]int32, error) {
-	return app.db.PIDs()
+func (app *Application) GetServers() ([]string, error) {
+	return app.db.Servers()
 }

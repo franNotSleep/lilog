@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"context"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -13,8 +12,8 @@ import (
 	"github.com/frannotsleep/lilog/internal/application/ports"
 )
 
-func NewAdapter(api ports.APIPort, connConfig ConnConfig, ctx context.Context) Adapter {
-	return Adapter{api: api, connConfig: connConfig, ctx: ctx}
+func NewAdapter(api ports.APIPort, connConfig ConnConfig) Adapter {
+	return Adapter{api: api, connConfig: connConfig}
 }
 
 func (a Adapter) ListenAndServe() error {
@@ -34,14 +33,9 @@ func (a Adapter) serve(conn net.PacketConn) error {
 		return errors.New("nil connection")
 	}
 
-	go func() {
-		<-a.ctx.Done()
-		_ = conn.Close()
-	}()
-
 	for {
 		buf := make([]byte, 4096)
-		n, _, err := conn.ReadFrom(buf)
+		n, clientAddr, err := conn.ReadFrom(buf)
 		if err != nil {
 			continue
 		}
@@ -61,7 +55,7 @@ func (a Adapter) serve(conn net.PacketConn) error {
 		}
 
 		if rt == RTR {
-			go a.handleRRQ(buf[:n])
+			go a.handleRRQ(buf[:n], conn, clientAddr)
 		}
 
 		//		go a.handle(buf[:n])
@@ -77,7 +71,7 @@ func (a Adapter) handle(buf []byte) {
 	}
 
 	invoice := domain.NewInvoice(data.Time, data.Level, data.PID, data.Hostname, data.ResponseTime, data.Message, domain.InvoiceRequest(data.Request), domain.InvoiceResponse(data.Response))
-	err := a.api.NewInvoice(invoice)
+	err := a.api.NewInvoice("ok", invoice)
 
 	if err != nil {
 		log.Printf("a.api.NewInvoice(): %v\n", err)
@@ -85,11 +79,25 @@ func (a Adapter) handle(buf []byte) {
 	}
 }
 
-func (a Adapter) handleRRQ(bytes []byte) {
+func (a Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Addr) {
 	rq := ReadReq{}
 	rq.UnmarshalBinary(bytes)
 
-	log.Printf("%+v\n", rq)
+	if rq.OpCode == OpRA {
+		invoices, err := a.api.GetInvoices(rq.Server)
+		if err != nil {
+			return
+		}
+
+		for _, invoice := range invoices {
+			data, err := json.Marshal(invoice)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			conn.WriteTo(data, clientAddr)
+		}
+	}
 }
 
 func (a Adapter) handleSRQ() {

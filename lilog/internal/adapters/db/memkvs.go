@@ -1,42 +1,44 @@
 package db
 
-import "github.com/frannotsleep/lilog/internal/application/core/domain"
+import (
+	"github.com/frannotsleep/lilog/internal/application/core/domain"
+)
 
 type MemKVSAdapter struct {
-	kvs map[int32][]domain.Invoice
+	kvs map[string][]domain.Invoice
 }
 
 func NewMemKVSAdapter() *MemKVSAdapter {
 	return &MemKVSAdapter{
-		kvs: make(map[int32][]domain.Invoice),
+		kvs: make(map[string][]domain.Invoice),
 	}
 }
 
-func (m *MemKVSAdapter) Save(invoice domain.Invoice) error {
-	if len(m.kvs[invoice.PID]) > 0 {
-		m.kvs[invoice.PID] = append(m.kvs[invoice.PID], invoice)
+func (m *MemKVSAdapter) Save(server string, invoice domain.Invoice) error {
+	if len(m.kvs[server]) > 0 {
+		m.kvs[server] = append(m.kvs[server], invoice)
 	} else {
-		m.kvs[invoice.PID] = []domain.Invoice{invoice}
+		m.kvs[server] = []domain.Invoice{invoice}
 	}
 
 	return nil
 }
 
-func (m *MemKVSAdapter) Get(pid int32) ([]domain.Invoice, error) {
-	invoices := m.kvs[pid]
+func (m *MemKVSAdapter) Get(server string) ([]domain.Invoice, error) {
+	invoices := m.kvs[server]
 	return invoices, nil
 }
 
-func (m *MemKVSAdapter) PIDs() ([]int32, error) {
-	keys := make([]int32, 0, len(m.kvs))
+func (m *MemKVSAdapter) Servers() ([]string, error) {
+	keys := make([]string, 0, len(m.kvs))
 	for k := range m.kvs {
 		keys = append(keys, k)
 	}
 
-	pids := make([]int32, 0, len(m.kvs))
-	for pid := range m.kvs {
-		pids = append(pids, pid)
+	servers := make([]string, 0, len(m.kvs))
+	for server := range m.kvs {
+		servers = append(servers, server)
 	}
 
-	return pids, nil
+	return servers, nil
 }

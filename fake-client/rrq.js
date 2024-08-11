@@ -35,6 +35,10 @@ client.connect(4119, "127.0.0.1", (err) => {
       throw new Error(err);
     }
 
-    client.close();
+    client.on("message", (msg, rinfo) => {
+      console.log(`server got: ${msg} from ${rinfo.address}:${rinfo.port}`);
+
+      client.close();
+    });
   });
 });
