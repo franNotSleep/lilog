@@ -102,6 +102,8 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Ad
 	if rq.KeepListening != 0 && a.findListener(clientAddr) == -1 {
 		a.listeners = append(a.listeners, clientAddr)
 	}
+
+	log.Printf("%+v\n", rq)
 }
 
 func (a Adapter) handleSRQ(bytes []byte, conn net.PacketConn) {

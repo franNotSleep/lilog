@@ -109,9 +109,16 @@ func (s *SendReq) UnmarshalBinary(p []byte) error {
 
 	s.Server = strings.TrimRight(server, "\x00")
 
+	jsonData, err := r.ReadString(0)
+	if err != nil {
+		return errors.New("Invalid Send Request.")
+	}
+
+	jsonData = strings.TrimRight(jsonData, "\x00")
+
 	data := new(data)
 
-	if err := json.Unmarshal(r.Bytes(), data); err != nil {
+	if err := json.Unmarshal([]byte(jsonData), data); err != nil {
 		log.Printf("invalid json: %v\n", err)
 		return errors.New("Invalid Send Request.")
 	}

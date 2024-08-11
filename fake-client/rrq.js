@@ -17,8 +17,7 @@ let from = 255 + 255;
 let to = 255 + 100;
 view.setBigUint64(1 + server.length + 1, BigInt(from), false);
 view.setBigUint64(1 + server.length + 1 + 8, BigInt(to), false);
-
-view.setUint8(1 + server.length + 1 + 8 + 8, "\x00");
+view.setUint8(1 + server.length + 1 + 8 + 8, 1)
 
 console.log(buffer.slice(8));
 console.log({ to }, { from });
