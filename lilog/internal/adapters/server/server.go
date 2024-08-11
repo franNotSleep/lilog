@@ -57,7 +57,7 @@ func (a Adapter) serve(conn net.PacketConn) error {
 		if rt == RTR {
 			go a.handleRRQ(buf[:n], conn, clientAddr)
 		} else if rt == RTS {
-			go a.handleSRQ()
+			go a.handleSRQ(buf[:n], conn)
 		}
 	}
 }
@@ -104,6 +104,21 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Ad
 	}
 }
 
-func (a Adapter) handleSRQ() {
+func (a Adapter) handleSRQ(bytes []byte, conn net.PacketConn) {
+	sq := SendReq{}
+	err := sq.UnmarshalBinary(bytes)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
+	for _, clientAddr := range a.listeners {
+		data, err := json.Marshal(sq.Data)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		conn.WriteTo(data, clientAddr)
+	}
 }
