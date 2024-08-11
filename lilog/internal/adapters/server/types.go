@@ -94,24 +94,24 @@ func (s *SendReq) UnmarshalBinary(p []byte) error {
 	var code opCode
 	err := binary.Read(r, binary.BigEndian, &code)
 	if err != nil {
-		return errors.New("Invalid Send Request.")
+		return errors.New("Invalid Send Request. Reading Operation Code.")
 	}
 
 	if code != OpData {
-		return errors.New("Invalid Send Request.")
+		return errors.New("Invalid Send Request. Reading Operation Code.")
 	}
 	s.OpCode = code
 
 	server, err := r.ReadString(0)
 	if err != nil {
-		return errors.New("Invalid Send Request.")
+		return errors.New("Invalid Send Request. Reading Server.")
 	}
 
 	s.Server = strings.TrimRight(server, "\x00")
 
 	jsonData, err := r.ReadString(0)
 	if err != nil {
-		return errors.New("Invalid Send Request.")
+		return errors.New("Invalid Send Request. Reading jsonData.")
 	}
 
 	jsonData = strings.TrimRight(jsonData, "\x00")
@@ -119,8 +119,8 @@ func (s *SendReq) UnmarshalBinary(p []byte) error {
 	data := new(data)
 
 	if err := json.Unmarshal([]byte(jsonData), data); err != nil {
-		log.Printf("invalid json: %v\n", err)
-		return errors.New("Invalid Send Request.")
+		log.Printf("invalid json: %v\n%s", err, jsonData)
+		return errors.New("Invalid Send Request. Invalid JSON.")
 	}
 
 	invoice := domain.NewInvoice(data.Time, data.Level, data.PID, data.Hostname, data.ResponseTime, data.Message, domain.InvoiceRequest(data.Request), domain.InvoiceResponse(data.Response))
