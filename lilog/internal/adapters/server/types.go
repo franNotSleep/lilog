@@ -47,7 +47,11 @@ type data struct {
 	Message      string   `json:"msg"`
 }
 
-type opCode uint16
+type opCode uint8
+
+func (o opCode) Bytes() []byte {
+	return []byte{uint8(o)}
+}
 
 const (
 	OpRA opCode = iota + 1
@@ -65,7 +69,7 @@ type ReadReq struct {
 }
 
 func (q ReadReq) MarshalBinary() ([]byte, error) {
-	cap := 2 + 2 + len(q.Server) + 1 + 64 + 64
+	cap := 1 + len(q.Server) + 1 + 8 + 8
 	b := new(bytes.Buffer)
 	b.Grow(cap)
 
@@ -107,7 +111,7 @@ func (q *ReadReq) UnmarshalBinary(p []byte) error {
 		return err
 	}
 
-	if code != OpRA || code != OpRO {
+	if code != OpRA && code != OpRO {
 		return errors.New("Invalid Read Request.")
 	}
 	q.OpCode = code
@@ -116,6 +120,7 @@ func (q *ReadReq) UnmarshalBinary(p []byte) error {
 	if err != nil {
 		return errors.New("Invalid Read Request.")
 	}
+
 	q.Server = strings.TrimRight(server, "\x00")
 
 	var from uint64
@@ -130,6 +135,7 @@ func (q *ReadReq) UnmarshalBinary(p []byte) error {
 	if err != nil {
 		return errors.New("Invalid Read Request.")
 	}
+
 	q.To = to
 
 	return nil

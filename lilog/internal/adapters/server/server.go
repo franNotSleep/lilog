@@ -1,7 +1,9 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"log"
@@ -44,7 +46,22 @@ func (a Adapter) serve(conn net.PacketConn) error {
 			continue
 		}
 
-		go a.handle(buf[:n])
+		var code opCode
+		r := bytes.NewBuffer(buf)
+		err = binary.Read(r, binary.BigEndian, &code)
+		if err != nil {
+			continue
+		}
+
+		if code == OpRA || code == OpRO {
+			rq := ReadReq{}
+			bytes := append(code.Bytes(), buf...)
+			rq.UnmarshalBinary(bytes[:n])
+
+			log.Printf("%+v\n", rq)
+		}
+
+		//		go a.handle(buf[:n])
 	}
 }
 
@@ -63,4 +80,8 @@ func (a Adapter) handle(buf []byte) {
 		log.Printf("a.api.NewInvoice(): %v\n", err)
 		return
 	}
+}
+
+func (a Adapter) handleReadReq() {
+
 }
