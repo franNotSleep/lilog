@@ -47,18 +47,21 @@ func (a Adapter) serve(conn net.PacketConn) error {
 		}
 
 		var code opCode
+
 		r := bytes.NewBuffer(buf)
 		err = binary.Read(r, binary.BigEndian, &code)
 		if err != nil {
 			continue
 		}
 
-		if code == OpRA || code == OpRO {
-			rq := ReadReq{}
-			bytes := append(code.Bytes(), buf...)
-			rq.UnmarshalBinary(bytes[:n])
+		rt, err := reqType(buf[:n])
+		if err != nil {
+			log.Println(err)
+			continue
+		}
 
-			log.Printf("%+v\n", rq)
+		if rt == RTR {
+			go a.handleRRQ(buf[:n])
 		}
 
 		//		go a.handle(buf[:n])
@@ -82,6 +85,13 @@ func (a Adapter) handle(buf []byte) {
 	}
 }
 
-func (a Adapter) handleReadReq() {
+func (a Adapter) handleRRQ(bytes []byte) {
+	rq := ReadReq{}
+	rq.UnmarshalBinary(bytes)
+
+	log.Printf("%+v\n", rq)
+}
+
+func (a Adapter) handleSRQ() {
 
 }

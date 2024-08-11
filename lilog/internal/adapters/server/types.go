@@ -47,6 +47,13 @@ type data struct {
 	Message      string   `json:"msg"`
 }
 
+type ReqType int8
+
+const (
+	RTR ReqType = 0
+	RTS ReqType = 1
+)
+
 type opCode uint8
 
 func (o opCode) Bytes() []byte {
@@ -139,4 +146,27 @@ func (q *ReadReq) UnmarshalBinary(p []byte) error {
 	q.To = to
 
 	return nil
+}
+
+func reqType(b []byte) (ReqType, error) {
+	r := bytes.NewReader(b)
+
+	var code opCode
+	err := binary.Read(r, binary.BigEndian, &code)
+	if err != nil {
+		return -1, err
+	}
+
+	if code == OpRA || code == OpRO {
+		b = append(code.Bytes(), b...)
+		return RTR, nil
+	}
+
+	if code == OpData {
+		b = append(code.Bytes(), b...)
+		return RTS, nil
+	}
+
+	return -1, nil
+
 }
