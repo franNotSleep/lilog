@@ -56,9 +56,9 @@ func (a Adapter) serve(conn net.PacketConn) error {
 
 		if rt == RTR {
 			go a.handleRRQ(buf[:n], conn, clientAddr)
+		} else if rt == RTS {
+			go a.handleSRQ()
 		}
-
-		//		go a.handle(buf[:n])
 	}
 }
 

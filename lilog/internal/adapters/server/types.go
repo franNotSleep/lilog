@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
+	"log"
 	"net"
 	"strings"
 
+	"github.com/frannotsleep/lilog/internal/application/core/domain"
 	"github.com/frannotsleep/lilog/internal/application/ports"
 )
 
@@ -78,6 +81,46 @@ const (
 	OpAck
 	OpErr
 )
+
+type SendReq struct {
+	OpCode opCode
+	Server string
+	Data   domain.Invoice
+}
+
+func (s *SendReq) UnmarshalBinary(p []byte) error {
+	r := bytes.NewBuffer(p)
+
+	var code opCode
+	err := binary.Read(r, binary.BigEndian, &code)
+	if err != nil {
+		return errors.New("Invalid Send Request.")
+	}
+
+	if code != OpData {
+		return errors.New("Invalid Send Request.")
+	}
+	s.OpCode = code
+
+	server, err := r.ReadString(0)
+	if err != nil {
+		return errors.New("Invalid Send Request.")
+	}
+
+	s.Server = strings.TrimRight(server, "\x00")
+
+	data := new(data)
+
+	if err := json.Unmarshal(r.Bytes(), data); err != nil {
+		log.Printf("invalid json: %v\n", err)
+		return errors.New("Invalid Send Request.")
+	}
+
+	invoice := domain.NewInvoice(data.Time, data.Level, data.PID, data.Hostname, data.ResponseTime, data.Message, domain.InvoiceRequest(data.Request), domain.InvoiceResponse(data.Response))
+	s.Data = invoice
+
+	return nil
+}
 
 type ReadReq struct {
 	OpCode        opCode
