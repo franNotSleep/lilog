@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"net"
 	"strings"
 
 	"github.com/frannotsleep/lilog/internal/application/ports"
@@ -14,6 +15,7 @@ type Adapter struct {
 	api        ports.APIPort
 	connConfig ConnConfig
 	ctx        context.Context
+	listeners  []net.Addr
 }
 
 type ConnConfig struct {
@@ -50,8 +52,8 @@ type data struct {
 type ReqType int8
 
 const (
-	RTR ReqType = 0
-	RTS ReqType = 1
+	RTR ReqType = iota
+	RTS
 )
 
 type opCode uint8
@@ -69,14 +71,15 @@ const (
 )
 
 type ReadReq struct {
-	OpCode opCode
-	Server string
-	From   uint64
-	To     uint64
+	OpCode        opCode
+	Server        string
+	From          uint64
+	To            uint64
+	KeepListening uint8
 }
 
 func (q ReadReq) MarshalBinary() ([]byte, error) {
-	cap := 1 + len(q.Server) + 1 + 8 + 8
+	cap := 1 + len(q.Server) + 1 + 8 + 8 + 1
 	b := new(bytes.Buffer)
 	b.Grow(cap)
 
@@ -105,6 +108,8 @@ func (q ReadReq) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 
+	err = binary.Write(b, binary.BigEndian, q.KeepListening)
+
 	return b.Bytes(), nil
 }
 
@@ -127,7 +132,6 @@ func (q *ReadReq) UnmarshalBinary(p []byte) error {
 	if err != nil {
 		return errors.New("Invalid Read Request.")
 	}
-
 	q.Server = strings.TrimRight(server, "\x00")
 
 	var from uint64
@@ -142,8 +146,14 @@ func (q *ReadReq) UnmarshalBinary(p []byte) error {
 	if err != nil {
 		return errors.New("Invalid Read Request.")
 	}
-
 	q.To = to
+
+	var keep uint8
+	err = binary.Read(r, binary.BigEndian, &keep)
+	if err != nil {
+		return errors.New("Invalid Read Request")
+	}
+	q.KeepListening = keep
 
 	return nil
 }
