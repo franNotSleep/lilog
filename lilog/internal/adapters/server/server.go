@@ -5,11 +5,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"github.com/frannotsleep/lilog/internal/application/ports"
 	"log"
 	"net"
-
-	"github.com/frannotsleep/lilog/internal/application/core/domain"
-	"github.com/frannotsleep/lilog/internal/application/ports"
 )
 
 func NewAdapter(api ports.APIPort, connConfig ConnConfig) Adapter {
@@ -62,23 +60,6 @@ func (a Adapter) serve(conn net.PacketConn) error {
 	}
 }
 
-func (a Adapter) handle(buf []byte) {
-	data := new(data)
-
-	if err := json.Unmarshal(buf, data); err != nil {
-		log.Printf("invalid json: %v\n", err)
-		return
-	}
-
-	invoice := domain.NewInvoice(data.Time, data.Level, data.PID, data.Hostname, data.ResponseTime, data.Message, domain.InvoiceRequest(data.Request), domain.InvoiceResponse(data.Response))
-	err := a.api.NewInvoice("ok", invoice)
-
-	if err != nil {
-		log.Printf("a.api.NewInvoice(): %v\n", err)
-		return
-	}
-}
-
 func (a *Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Addr) {
 	rq := ReadReq{}
 	rq.UnmarshalBinary(bytes)
@@ -100,15 +81,20 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Ad
 	}
 
 	if rq.KeepListening != 0 && a.findListener(clientAddr) == -1 {
+		log.Printf("%s is waiting for invoices...😗\n", clientAddr)
 		a.listeners = append(a.listeners, clientAddr)
 	}
-
-	log.Printf("%+v\n", rq)
 }
 
 func (a Adapter) handleSRQ(bytes []byte, conn net.PacketConn) {
 	sq := SendReq{}
 	err := sq.UnmarshalBinary(bytes)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	err = a.api.NewInvoice(sq.Server, sq.Data)
 	if err != nil {
 		log.Println(err)
 		return

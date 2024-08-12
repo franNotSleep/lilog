@@ -17,13 +17,7 @@ let from = 255 + 255;
 let to = 255 + 100;
 view.setBigUint64(1 + server.length + 1, BigInt(from), false);
 view.setBigUint64(1 + server.length + 1 + 8, BigInt(to), false);
-view.setUint8(1 + server.length + 1 + 8 + 8, 1)
-
-console.log(buffer.slice(8));
-console.log({ to }, { from });
-console.log(view.getUint8(0));
-console.log("to", view.getBigUint64(1 + server.length + 1 + 8 + 1));
-console.log("from", view.getBigUint64(1 + server.length + 1));
+view.setUint8(1 + server.length + 1 + 8 + 8, 1);
 
 client.connect(4119, "127.0.0.1", (err) => {
   if (err) {
@@ -35,9 +29,14 @@ client.connect(4119, "127.0.0.1", (err) => {
     }
 
     client.on("message", (msg, rinfo) => {
-      console.log(`server got: ${msg} from ${rinfo.address}:${rinfo.port}`);
-
-      client.close();
+      const data = JSON.parse(msg);
+      console.log(data);
     });
   });
+});
+
+process.on("SIGINT", () => {
+  console.log("\nclosing client... 👀");
+  client.close();
+  console.log("closed. bye bye :) 👊🏾");
 });
