@@ -81,7 +81,7 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Ad
 	}
 
 	if rq.KeepListening != 0 && a.findListener(clientAddr) == -1 {
-		log.Printf("%s is waiting for invoices...😗\n", clientAddr)
+		log.Printf("\033[32m%s\033[0m is waiting for invoices...😗\n", clientAddr)
 		a.listeners = append(a.listeners, clientAddr)
 	}
 }
