@@ -66,6 +66,7 @@ type ReqType int8
 const (
 	RTR ReqType = iota
 	RTS
+	RTA
 )
 
 type opCode uint8
@@ -218,24 +219,26 @@ func (q *ReadReq) UnmarshalBinary(p []byte) error {
 }
 
 func reqType(b []byte) (ReqType, error) {
+	var code opCode
+	var typ ReqType
 	r := bytes.NewReader(b)
 
-	var code opCode
 	err := binary.Read(r, binary.BigEndian, &code)
 	if err != nil {
 		return -1, err
 	}
 
 	if code == OpRA || code == OpRO {
-		b = append(code.Bytes(), b...)
-		return RTR, nil
+		typ = RTR
+	} else if code == OpData {
+		typ = RTS
+	} else if code == OpAck {
+		typ = RTA
+	} else {
+		typ = -1
 	}
 
-	if code == OpData {
-		b = append(code.Bytes(), b...)
-		return RTS, nil
-	}
-
-	return -1, nil
+	b = append(code.Bytes(), b...)
+	return typ, nil
 
 }
