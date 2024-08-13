@@ -76,7 +76,46 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Ad
 				log.Println(err)
 				return
 			}
-			conn.WriteTo(data, clientAddr)
+			_, err = conn.WriteTo(data, clientAddr)
+			if err != nil {
+				// TODO: apply retries feature
+				log.Println(err)
+				return
+			}
+
+			buf := make([]byte, 2)
+			c, err := net.Dial("udp", clientAddr.String())
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			_, err = c.Read(buf)
+			if err != nil {
+				// TODO: apply retries feature
+				log.Println(err)
+				return
+			}
+
+			typ, err := reqType(buf)
+			if err != nil {
+				// TODO: apply retries feature
+				log.Println(err)
+				return
+			}
+
+			if typ != RTA {
+				errData := Err{}
+				errData.Message = "Invalid ACK."
+				errData.OpCode = OpErr
+				errData.Error = ErrIllegalOp
+				b, err := errData.MarshalBinary()
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				c.Write(b)
+			}
 		}
 	}
 
