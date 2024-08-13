@@ -69,6 +69,13 @@ const (
 	RTA
 )
 
+type ErrCode uint16
+
+const (
+	ErrUnknown ErrCode = iota
+	ErrIllegalOp
+)
+
 type opCode uint8
 
 func (o opCode) Bytes() []byte {
@@ -214,6 +221,72 @@ func (q *ReadReq) UnmarshalBinary(p []byte) error {
 		return errors.New("Invalid Read Request")
 	}
 	q.KeepListening = keep
+
+	return nil
+}
+
+type Err struct {
+	OpCode  opCode
+	Error   ErrCode
+	Message string
+}
+
+func (e Err) MarshalBinary() ([]byte, error) {
+	cap := 2 + 2 + len(e.Message) + 1
+	b := new(bytes.Buffer)
+	b.Grow(cap)
+
+	err := binary.Write(b, binary.BigEndian, OpErr)
+	if err != nil {
+		return nil, err
+	}
+
+	err = binary.Write(b, binary.BigEndian, e.Error)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = b.WriteString(e.Message)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.WriteByte(0)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Bytes(), nil
+}
+
+func (e *Err) UnmarshalBinary(p []byte) error {
+	r := bytes.NewBuffer(p)
+
+	var code opCode
+	err := binary.Read(r, binary.BigEndian, &code)
+	if err != nil {
+		return err
+	}
+	if code != OpErr {
+		return errors.New("Invalid Error.")
+	}
+	e.OpCode = code
+
+	var errCode ErrCode
+	err = binary.Read(r, binary.BigEndian, &errCode)
+	if err != nil {
+		return err
+	}
+	if errCode != ErrUnknown || errCode != ErrIllegalOp {
+		return errors.New("Invalid Error.")
+	}
+	e.Error = errCode
+
+	msg, err := r.ReadString(0)
+	if err != nil {
+		return err
+	}
+	e.Message = strings.TrimRight(msg, "\x00")
 
 	return nil
 }
