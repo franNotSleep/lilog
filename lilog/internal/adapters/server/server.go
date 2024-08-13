@@ -5,9 +5,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"github.com/frannotsleep/lilog/internal/application/ports"
 	"log"
 	"net"
+	"time"
+
+	"github.com/frannotsleep/lilog/internal/application/ports"
 )
 
 func NewAdapter(api ports.APIPort, connConfig ConnConfig) Adapter {
@@ -43,6 +45,7 @@ func (a Adapter) serve(conn net.PacketConn) error {
 		r := bytes.NewBuffer(buf)
 		err = binary.Read(r, binary.BigEndian, &code)
 		if err != nil {
+			log.Println(err)
 			continue
 		}
 
@@ -53,16 +56,26 @@ func (a Adapter) serve(conn net.PacketConn) error {
 		}
 
 		if rt == RTR {
-			go a.handleRRQ(buf[:n], conn, clientAddr)
+			go a.handleRRQ(buf[:n], clientAddr)
 		} else if rt == RTS {
 			go a.handleSRQ(buf[:n], conn)
 		}
 	}
 }
 
-func (a *Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Addr) {
+func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 	rq := ReadReq{}
 	rq.UnmarshalBinary(bytes)
+
+	log.Println(clientAddr.String())
+	conn, err := net.Dial("udp", clientAddr.String())
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	defer func() { _ = conn.Close() }()
+	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 
 	if rq.OpCode == OpRA {
 		invoices, err := a.api.GetInvoices(rq.Server)
@@ -76,21 +89,15 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Ad
 				log.Println(err)
 				return
 			}
-			_, err = conn.WriteTo(data, clientAddr)
+			_, err = conn.Write(data)
 			if err != nil {
 				// TODO: apply retries feature
 				log.Println(err)
 				return
 			}
 
-			buf := make([]byte, 2)
-			c, err := net.Dial("udp", clientAddr.String())
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			_, err = c.Read(buf)
+			buf := make([]byte, 4096)
+			_, err = conn.Read(buf)
 			if err != nil {
 				// TODO: apply retries feature
 				log.Println(err)
@@ -114,7 +121,11 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.PacketConn, clientAddr net.Ad
 					log.Println(err)
 					return
 				}
-				c.Write(b)
+				_, err = conn.Write(b)
+				if err != nil {
+					log.Println(err)
+					return
+				}
 			}
 		}
 	}
