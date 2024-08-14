@@ -3,13 +3,14 @@ import dgram from "node:dgram";
 const server = dgram.createSocket("udp4");
 
 server.on("listening", () => {
-  console.log(server.address());
   server.send(reqView(), 4119, "127.0.0.1", (err) => {
     if (err) {
       throw new Error(err);
     }
   });
 });
+
+let i = 1;
 
 server.on("message", (msg, rinfo) => {
   let data;
@@ -20,13 +21,17 @@ server.on("message", (msg, rinfo) => {
   }
   console.log(rinfo, data);
 
-  setTimeout(() => {
-    server.send(ackView(), rinfo.port, rinfo.address, (err) => {
-      if (err) {
-        throw new Error(err);
-      }
-    });
-  }, 1000);
+  if (i <= 0) {
+    setTimeout(() => {
+      server.send(ackView(), rinfo.port, rinfo.address, (err) => {
+        if (err) {
+          throw new Error(err);
+        }
+      });
+    }, 1000);
+  }
+
+  i--;
 });
 
 function ackView() {

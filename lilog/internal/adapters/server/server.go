@@ -91,19 +91,20 @@ func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 		}
 
 		for _, invoice := range invoices {
-			data, err := json.Marshal(invoice)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			_, err = conn.Write(data)
-			if err != nil {
-				// TODO: apply retries feature
-				log.Println(err)
-				return
-			}
-
+			log.Printf("%+v\n", a.connConfig)
 			for i := a.connConfig.Retries; i > 0; i-- {
+				data, err := json.Marshal(invoice)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				_, err = conn.Write(data)
+				if err != nil {
+					// TODO: apply retries feature
+					log.Println(err)
+					return
+				}
+
 				buf := make([]byte, 4096)
 				_ = conn.SetReadDeadline(time.Now().Add(a.connConfig.Timeout))
 				_, err = conn.Read(buf)
@@ -138,6 +139,8 @@ func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 						return
 					}
 				}
+
+				break
 			}
 		}
 	}
