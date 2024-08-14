@@ -100,6 +100,10 @@ func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 			_, err = conn.Read(buf)
 			if err != nil {
 				// TODO: apply retries feature
+				if nErr, ok := err.(net.Error); ok && nErr.Timeout() {
+					// TODO: retries
+					log.Println(err)
+				}
 				log.Println(err)
 				return
 			}
