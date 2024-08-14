@@ -75,7 +75,7 @@ func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 	}
 
 	defer func() { _ = conn.Close() }()
-	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_ = conn.SetReadDeadline(time.Now().Add(a.connConfig.Timeout))
 
 	if rq.OpCode == OpRA {
 		invoices, err := a.api.GetInvoices(rq.Server)

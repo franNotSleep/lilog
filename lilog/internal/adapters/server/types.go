@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/frannotsleep/lilog/internal/application/core/domain"
 	"github.com/frannotsleep/lilog/internal/application/ports"
@@ -33,6 +34,8 @@ func (a Adapter) findListener(addr net.Addr) int {
 type ConnConfig struct {
 	Address        string
 	AllowedClients []string
+	Retries        uint8
+	Timeout        time.Duration
 }
 
 type request struct {
