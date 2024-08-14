@@ -13,6 +13,14 @@ import (
 )
 
 func NewAdapter(api ports.APIPort, connConfig ConnConfig) Adapter {
+	if connConfig.Retries == 0 {
+		connConfig.Retries = 3
+	}
+
+	if connConfig.Timeout == 0 {
+		connConfig.Timeout = 6 * time.Second
+	}
+
 	return Adapter{api: api, connConfig: connConfig, listeners: []net.Addr{}}
 }
 
@@ -75,7 +83,6 @@ func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 	}
 
 	defer func() { _ = conn.Close() }()
-	_ = conn.SetReadDeadline(time.Now().Add(a.connConfig.Timeout))
 
 	if rq.OpCode == OpRA {
 		invoices, err := a.api.GetInvoices(rq.Server)
@@ -96,39 +103,40 @@ func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 				return
 			}
 
-			buf := make([]byte, 4096)
-			_, err = conn.Read(buf)
-			if err != nil {
-				// TODO: apply retries feature
-				if nErr, ok := err.(net.Error); ok && nErr.Timeout() {
-					// TODO: retries
+			for i := a.connConfig.Retries; i > 0; i-- {
+				buf := make([]byte, 4096)
+				_ = conn.SetReadDeadline(time.Now().Add(a.connConfig.Timeout))
+				_, err = conn.Read(buf)
+				if err != nil {
+					// TODO: apply retries feature
+					if nErr, ok := err.(net.Error); ok && nErr.Timeout() {
+						continue
+					}
 					log.Println(err)
+					return
 				}
-				log.Println(err)
-				return
-			}
 
-			typ, err := reqType(buf)
-			if err != nil {
-				// TODO: apply retries feature
-				log.Println(err)
-				return
-			}
-
-			if typ != RTA {
-				errData := Err{}
-				errData.Message = "Invalid ACK."
-				errData.OpCode = OpErr
-				errData.Error = ErrIllegalOp
-				b, err := errData.MarshalBinary()
+				typ, err := reqType(buf)
 				if err != nil {
 					log.Println(err)
 					return
 				}
-				_, err = conn.Write(b)
-				if err != nil {
-					log.Println(err)
-					return
+
+				if typ != RTA {
+					errData := Err{}
+					errData.Message = "Invalid ACK."
+					errData.OpCode = OpErr
+					errData.Error = ErrIllegalOp
+					b, err := errData.MarshalBinary()
+					if err != nil {
+						log.Println(err)
+						return
+					}
+					_, err = conn.Write(b)
+					if err != nil {
+						log.Println(err)
+						return
+					}
 				}
 			}
 		}
