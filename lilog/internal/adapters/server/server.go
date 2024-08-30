@@ -57,7 +57,10 @@ func (a Adapter) ServeTLS(l net.Listener, certFn, keyFn string) error {
 		}
 
 		go func() {
-			defer conn.Close()
+			defer func() {
+				log.Printf("\033[32m%s\033[0m \033[34mbye...\033[0m👋\n", conn.RemoteAddr())
+				_ = conn.Close()
+			}()
 
 			for {
 				if a.connConfig.Timeout > 0 {
@@ -71,7 +74,7 @@ func (a Adapter) ServeTLS(l net.Listener, certFn, keyFn string) error {
 				buf := make([]byte, 4096)
 				n, err := conn.Read(buf)
 				if err != nil {
-					fmt.Printf("Read: %v", err)
+					fmt.Printf("Read: %v\n", err)
 					return
 				}
 
@@ -104,8 +107,6 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.Conn) {
 	rq := ReadReq{}
 	rq.UnmarshalBinary(bytes)
 
-	defer func() { _ = conn.Close() }()
-
 	if rq.OpCode == OpRA {
 		invoices, err := a.api.GetInvoices(rq.Server)
 		if err != nil {
@@ -126,7 +127,7 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.Conn) {
 		}
 	}
 
-	log.Printf("\033[32m%s\033[0m is waiting for invoices...😗\n", conn.RemoteAddr())
+	log.Printf("\033[32m%s\033[0m is \033[33mwaiting\033[0m for minvoices...😗\n", conn.RemoteAddr())
 }
 
 func (a Adapter) handleSRQ(bytes []byte, conn net.Conn) {
