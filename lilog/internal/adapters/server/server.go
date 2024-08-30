@@ -2,9 +2,12 @@ package server
 
 import (
 	"bytes"
+	"context"
+	"crypto/tls"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"time"
@@ -22,6 +25,80 @@ func NewAdapter(api ports.APIPort, connConfig ConnConfig) Adapter {
 	}
 
 	return Adapter{api: api, connConfig: connConfig, listeners: []net.Addr{}}
+}
+
+func (a Adapter) ListenAndServeTLS(certFn, keyFn string) error {
+	l, err := net.Listen("tcp", a.connConfig.Address)
+	if err != nil {
+		return fmt.Errorf("binding to tcp %s: %w", a.connConfig.Address, err)
+	}
+
+	return nil
+}
+
+func (a Adapter) ServeTLS(l net.Listener, certFn, keyFn string) error {
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.CurveP256},
+		MinVersion:       tls.VersionTLS13,
+	}
+
+	cert, err := tls.LoadX509KeyPair(certFn, keyFn)
+	if err != nil {
+		return fmt.Errorf("loading key pair: %v", err)
+	}
+
+	tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
+
+	tlsListener := tls.NewListener(l, tlsConfig)
+
+	for {
+		conn, err := tlsListener.Accept()
+		if err != nil {
+			return fmt.Errorf("accept: %v", err)
+		}
+
+		go func() {
+			defer conn.Close()
+
+			for {
+				if a.connConfig.Timeout > 0 {
+					err := conn.SetDeadline(time.Now().Add(a.connConfig.Timeout))
+					if err != nil {
+						fmt.Printf("SetDeadline: %v", err)
+						return
+					}
+				}
+
+				buf := make([]byte, 4096)
+				n, err := conn.Read(buf)
+				if err != nil {
+					fmt.Printf("Read: %v", err)
+					return
+				}
+
+				var code opCode
+
+				r := bytes.NewBuffer(buf)
+				err = binary.Read(r, binary.BigEndian, &code)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+
+				rt, err := reqType(buf[:n])
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+
+				if rt == RTR {
+					go a.handleRRQ(buf[:n], clientAddr)
+				} else if rt == RTS {
+					go a.handleSRQ(buf[:n], conn)
+				}
+			}
+		}()
+	}
 }
 
 func (a Adapter) ListenAndServe() error {
@@ -75,7 +152,6 @@ func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 	rq := ReadReq{}
 	rq.UnmarshalBinary(bytes)
 
-	log.Println(clientAddr.String())
 	conn, err := net.Dial("udp", clientAddr.String())
 	if err != nil {
 		log.Println(err)
@@ -91,7 +167,6 @@ func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 		}
 
 		for _, invoice := range invoices {
-			log.Printf("%+v\n", a.connConfig)
 			for i := a.connConfig.Retries; i > 0; i-- {
 				data, err := json.Marshal(invoice)
 				if err != nil {
@@ -100,7 +175,6 @@ func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 				}
 				_, err = conn.Write(data)
 				if err != nil {
-					// TODO: apply retries feature
 					log.Println(err)
 					return
 				}
@@ -109,7 +183,6 @@ func (a *Adapter) handleRRQ(bytes []byte, clientAddr net.Addr) {
 				_ = conn.SetReadDeadline(time.Now().Add(a.connConfig.Timeout))
 				_, err = conn.Read(buf)
 				if err != nil {
-					// TODO: apply retries feature
 					if nErr, ok := err.(net.Error); ok && nErr.Timeout() {
 						continue
 					}
