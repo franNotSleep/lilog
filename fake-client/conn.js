@@ -13,7 +13,7 @@ const socket = tls.connect(4119, options, () => {
 socket.setEncoding("utf8");
 
 socket.on("data", (data) => {
-  console.log(data);
+  console.log(JSON.parse(data));
 });
 
 socket.on("end", () => {

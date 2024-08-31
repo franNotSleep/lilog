@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/frannotsleep/lilog/internal/application/ports"
@@ -22,7 +23,7 @@ func NewAdapter(api ports.APIPort, connConfig ConnConfig) Adapter {
 		connConfig.Timeout = 6 * time.Second
 	}
 
-	return Adapter{api: api, connConfig: connConfig, listeners: []net.Addr{}}
+	return Adapter{api: api, connConfig: connConfig, listeners: []net.Conn{}}
 }
 
 func (a Adapter) ListenAndServeTLS(certFn, keyFn string) error {
@@ -49,12 +50,19 @@ func (a Adapter) ServeTLS(l net.Listener, certFn, keyFn string) error {
 	tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
 
 	tlsListener := tls.NewListener(l, tlsConfig)
+  listenerForRemove := make(chan int)
 
 	for {
 		conn, err := tlsListener.Accept()
 		if err != nil {
 			return fmt.Errorf("accept: %v", err)
 		}
+
+    go func() {
+      for i := range listenerForRemove {
+        a.removeListener(i)
+      }
+    }()
 
 		go func() {
 			defer func() {
@@ -63,14 +71,6 @@ func (a Adapter) ServeTLS(l net.Listener, certFn, keyFn string) error {
 			}()
 
 			for {
-				if a.connConfig.Timeout > 0 {
-					err := conn.SetDeadline(time.Now().Add(a.connConfig.Timeout))
-					if err != nil {
-						fmt.Printf("SetDeadline: %v", err)
-						return
-					}
-				}
-
 				buf := make([]byte, 4096)
 				n, err := conn.Read(buf)
 				if err != nil {
@@ -96,7 +96,7 @@ func (a Adapter) ServeTLS(l net.Listener, certFn, keyFn string) error {
 				if rt == RTR {
 					go a.handleRRQ(buf[:n], conn)
 				} else if rt == RTS {
-					go a.handleSRQ(buf[:n], conn)
+					go a.handleSRQ(buf[:n], listenerForRemove)
 				}
 			}
 		}()
@@ -127,10 +127,12 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.Conn) {
 		}
 	}
 
-	log.Printf("\033[32m%s\033[0m is \033[33mwaiting\033[0m for minvoices...😗\n", conn.RemoteAddr())
+	a.listeners = append(a.listeners, conn)
+
+	log.Printf("\033[32m%s\033[0m is \033[33mwaiting\033[0m for invoices...😗\n", conn.RemoteAddr())
 }
 
-func (a Adapter) handleSRQ(bytes []byte, conn net.Conn) {
+func (a Adapter) handleSRQ(bytes []byte, listenerForRemove chan int) {
 	sq := SendReq{}
 	err := sq.UnmarshalBinary(bytes)
 	if err != nil {
@@ -150,5 +152,14 @@ func (a Adapter) handleSRQ(bytes []byte, conn net.Conn) {
 		return
 	}
 
-	conn.Write(data)
+	for i, listener := range a.listeners {
+		_, err := listener.Write(data)
+		if err != nil {
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				listenerForRemove <- i
+			} else {
+				log.Println(err)
+			}
+		}
+	}
 }

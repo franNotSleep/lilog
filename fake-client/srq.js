@@ -1,32 +1,28 @@
-import dgram from "node:dgram";
+import tls from "node:tls";
+import fs from "fs";
+
 import { getData } from "./data.js";
 
-const client = dgram.createSocket("udp4");
+const options = {
+  host: "localhost",
+  ca: [fs.readFileSync("serverCert.pem")],
+};
 
-const [, , n, maxResponseTime] = process.argv;
-
-if (!n || !maxResponseTime) {
-  console.log(`Usage: node ${process.argv[1]} <n request> <max response time>`);
-  process.exit(1);
-}
-
-client.connect(4119, "127.0.0.1", (err) => {
-  if (err) {
-    throw new Error(err);
-  }
-  for (let i = 0; i < +n; i++) {
-    const data = getData(+maxResponseTime);
+const socket = tls.connect(4119, options, () => {
+  setInterval(() => {
+    const maxResponseTime = Math.floor(Math.random() * 500) + 200;
+    const data = getData(maxResponseTime);
     const buff = getBuffer(data);
-    client.send(buff, (err) => {
-      if (err) {
-        throw new Error(err);
-      }
+    socket.write(buff);
+  }, 2 * 1000);
+});
 
-      if (i === n - 1) {
-        client.close();
-      }
-    });
-  }
+socket.on("data", (data) => {
+  console.log(data);
+});
+
+socket.on("end", () => {
+  console.log("server ends connection");
 });
 
 function getBuffer(data) {

@@ -19,16 +19,7 @@ type Adapter struct {
 	api        ports.APIPort
 	connConfig ConnConfig
 	ctx        context.Context
-	listeners  []net.Addr
-}
-
-func (a Adapter) findListener(addr net.Addr) int {
-	for i, listenerAddr := range a.listeners {
-		if listenerAddr.String() == addr.String() {
-			return i
-		}
-	}
-	return -1
+	listeners  []net.Conn
 }
 
 type ConnConfig struct {
@@ -316,5 +307,10 @@ func reqType(b []byte) (ReqType, error) {
 
 	b = append(code.Bytes(), b...)
 	return typ, nil
+}
 
+func (a *Adapter) removeListener(i int) {
+
+  a.listeners[i] = a.listeners[len(a.listeners) - 1]
+  a.listeners = a.listeners[:len(a.listeners) - 1]
 }
