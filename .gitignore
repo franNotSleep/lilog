@@ -1,4 +1,5 @@
 todos.txt
 *.swp
 *.pem
+node_modules/
 
