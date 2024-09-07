@@ -42,3 +42,22 @@ func (m *MemKVSAdapter) Servers() ([]string, error) {
 
 	return servers, nil
 }
+
+func (m *MemKVSAdapter) Export() ([]domain.Invoice, error) {
+	allInvoices := []domain.Invoice{}
+
+	for server := range m.kvs {
+		invoices, err := m.Get(server)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, invoice := range invoices {
+			allInvoices = append(allInvoices, invoice)
+		}
+
+	}
+
+  m.kvs = make(map[string][]domain.Invoice)
+	return allInvoices, nil
+}

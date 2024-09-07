@@ -6,4 +6,5 @@ type DBPort interface {
 	Save(server string, invoice domain.Invoice) error
 	Get(server string) ([]domain.Invoice, error)
 	Servers() ([]string, error)
+  Export() ([]domain.Invoice, error)
 }
