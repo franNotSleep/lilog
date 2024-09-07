@@ -6,4 +6,5 @@ type APIPort interface {
 	NewInvoice(server string, invoice domain.Invoice) error
 	GetInvoices(server string) ([]domain.Invoice, error)
 	GetServers() ([]string, error)
+	Backup() error
 }

@@ -58,9 +58,10 @@ type data struct {
 type ReqType int8
 
 const (
-	RTR ReqType = iota
-	RTS
+	RTR ReqType = iota // Read
+	RTS                // Send
 	RTA
+	RTE // Export
 )
 
 type ErrCode uint16
@@ -82,7 +83,12 @@ const (
 	OpData
 	OpAck
 	OpErr
+	OpE
 )
+
+type ExportReq struct {
+	error string
+}
 
 type SendReq struct {
 	OpCode opCode
@@ -271,7 +277,7 @@ func (e *Err) UnmarshalBinary(p []byte) error {
 	if err != nil {
 		return err
 	}
-	if errCode != ErrUnknown || errCode != ErrIllegalOp {
+	if errCode != ErrUnknown && errCode != ErrIllegalOp {
 		return errors.New("Invalid Error.")
 	}
 	e.Error = errCode
@@ -301,6 +307,8 @@ func reqType(b []byte) (ReqType, error) {
 		typ = RTS
 	} else if code == OpAck {
 		typ = RTA
+	} else if code == OpE {
+		typ = RTE
 	} else {
 		typ = -1
 	}
@@ -311,6 +319,6 @@ func reqType(b []byte) (ReqType, error) {
 
 func (a *Adapter) removeListener(i int) {
 
-  a.listeners[i] = a.listeners[len(a.listeners) - 1]
-  a.listeners = a.listeners[:len(a.listeners) - 1]
+	a.listeners[i] = a.listeners[len(a.listeners)-1]
+	a.listeners = a.listeners[:len(a.listeners)-1]
 }

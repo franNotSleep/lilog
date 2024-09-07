@@ -97,7 +97,9 @@ func (a Adapter) ServeTLS(l net.Listener, certFn, keyFn string) error {
 					go a.handleRRQ(buf[:n], conn)
 				} else if rt == RTS {
 					go a.handleSRQ(buf[:n], listenerForRemove)
-				}
+				} else if rt == RTE {
+          go a.handleERQ(listenerForRemove)
+        }
 			}
 		}()
 	}
@@ -147,6 +149,32 @@ func (a Adapter) handleSRQ(bytes []byte, listenerForRemove chan int) {
 	}
 
 	data, err := json.Marshal(sq.Data)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	for i, listener := range a.listeners {
+		_, err := listener.Write(data)
+		if err != nil {
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				listenerForRemove <- i
+			} else {
+				log.Println(err)
+			}
+		}
+	}
+}
+
+func (a Adapter) handleERQ(listenerForRemove chan int) {
+  err := a.api.Backup()
+  er := ExportReq{}
+
+  if err != nil {
+    er.error = err.Error()
+  }
+
+  data, err := json.Marshal(er)
 	if err != nil {
 		log.Println(err)
 		return
