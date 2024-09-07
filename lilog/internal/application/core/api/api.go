@@ -1,31 +1,36 @@
 package api
 
 import (
-	"encoding/json"
 	"log"
-	"os"
 	"time"
-
 	"github.com/frannotsleep/lilog/internal/application/core/domain"
 	"github.com/frannotsleep/lilog/internal/application/ports"
 )
 
 type Application struct {
-	db ports.DBPort
+	db     ports.DBPort
+	backup ports.BackupPort
 }
 
-func NewApplication(db ports.DBPort, backupInterval time.Duration) *Application {
-	ticker := time.NewTicker(backupInterval)
+func NewApplication(db ports.DBPort, backup ports.BackupPort) *Application {
+	ticker := time.NewTicker(5 * time.Second)
 	quit := make(chan struct{})
 
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				err := Export("logs.txt", db)
+
+				invoices, err := db.Export()
 				if err != nil {
-					log.Printf("Could not write to logs.txt: %v", err)
+					log.Printf("Could not export: %v", err)
 				}
+
+				err = backup.Backup(invoices)
+				if err != nil {
+					log.Printf("Could not backup: %v", err)
+				}
+
 			case <-quit:
 				ticker.Stop()
 				return
@@ -50,24 +55,4 @@ func (app *Application) GetInvoices(server string) ([]domain.Invoice, error) {
 
 func (app *Application) GetServers() ([]string, error) {
 	return app.db.Servers()
-}
-
-func Export(filename string, db ports.DBPort) error {
-	log.Printf("\033[32mWriting logs to \033[0m\033[33m{%s}...\033[0m😗\n", filename)
-	invoices, err := db.Export()
-	if err != nil {
-		return err
-	}
-
-	if len(invoices) == 0 {
-		return nil
-	}
-
-	b, err := json.Marshal(invoices)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(filename, b, 0666)
-	return err
 }
