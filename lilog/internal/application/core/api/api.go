@@ -53,7 +53,7 @@ func (app *Application) GetServers() ([]string, error) {
 }
 
 func Export(filename string, db ports.DBPort) error {
-  log.Printf("Writing logs to %s...", filename)
+	log.Printf("\033[32mWriting logs to \033[0m\033[33m{%s}...\033[0m😗\n", filename)
 	invoices, err := db.Export()
 	if err != nil {
 		return err
