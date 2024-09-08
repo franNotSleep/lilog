@@ -87,7 +87,8 @@ const (
 )
 
 type ExportReq struct {
-	error string
+  Error   string `json:"error"`
+  Message string `json:"message"`
 }
 
 type SendReq struct {

@@ -50,7 +50,7 @@ func (a Adapter) ServeTLS(l net.Listener, certFn, keyFn string) error {
 	tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
 
 	tlsListener := tls.NewListener(l, tlsConfig)
-  listenerForRemove := make(chan int)
+	listenerForRemove := make(chan int)
 
 	for {
 		conn, err := tlsListener.Accept()
@@ -58,11 +58,11 @@ func (a Adapter) ServeTLS(l net.Listener, certFn, keyFn string) error {
 			return fmt.Errorf("accept: %v", err)
 		}
 
-    go func() {
-      for i := range listenerForRemove {
-        a.removeListener(i)
-      }
-    }()
+		go func() {
+			for i := range listenerForRemove {
+				a.removeListener(i)
+			}
+		}()
 
 		go func() {
 			defer func() {
@@ -98,8 +98,8 @@ func (a Adapter) ServeTLS(l net.Listener, certFn, keyFn string) error {
 				} else if rt == RTS {
 					go a.handleSRQ(buf[:n], listenerForRemove)
 				} else if rt == RTE {
-          go a.handleERQ(listenerForRemove)
-        }
+					go a.handleERQ(conn, listenerForRemove)
+				}
 			}
 		}()
 	}
@@ -166,19 +166,24 @@ func (a Adapter) handleSRQ(bytes []byte, listenerForRemove chan int) {
 	}
 }
 
-func (a Adapter) handleERQ(listenerForRemove chan int) {
-  err := a.api.Backup()
-  er := ExportReq{}
+func (a Adapter) handleERQ(conn net.Conn, listenerForRemove chan int) {
+	err := a.api.Backup()
+	er := ExportReq{}
 
-  if err != nil {
-    er.error = err.Error()
-  }
+	if err != nil {
+		log.Println(err)
+		er.Error = err.Error()
+	} else {
+		er.Message = "Backup Completed!"
+	}
 
-  data, err := json.Marshal(er)
+	data, err := json.Marshal(er)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+
+	_, err = conn.Write(data)
 
 	for i, listener := range a.listeners {
 		_, err := listener.Write(data)
