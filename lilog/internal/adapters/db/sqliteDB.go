@@ -31,7 +31,7 @@ func NewSqliteAdapter(dbName string) (*SqliteAdapter, error) {
     );`)
 
 	db.Exec(`
-        CREATE TABLE InvoiceResponse (
+        CREATE TABLE invoices_responses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         status_code INT NOT NULL
     );`)
