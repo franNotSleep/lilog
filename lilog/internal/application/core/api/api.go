@@ -2,9 +2,10 @@ package api
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/frannotsleep/lilog/internal/application/core/domain"
 	"github.com/frannotsleep/lilog/internal/application/ports"
-	"time"
 )
 
 type Application struct {
@@ -13,24 +14,30 @@ type Application struct {
 }
 
 func NewApplication(db ports.DBPort, backup ports.BackupPort) *Application {
-	ticker := time.NewTicker(5 * time.Second)
-	quit := make(chan struct{})
+	app := &Application{
+		db:     db,
+		backup: backup,
+	}
 
 	go func() {
 		for {
 			select {
-			case <-ticker.C:
+      case <-app.backup.C():
+				invoices, err := app.db.Export()
+				if err != nil {
+					log.Println(err)
+					continue
+				}
 
-			case <-quit:
-				ticker.Stop()
-				return
+				if err := app.backup.Backup(invoices); err != nil {
+					log.Println(err)
+					continue
+				}
 			}
 		}
 	}()
 
-	return &Application{
-		db: db,
-	}
+	return app
 }
 
 func (app *Application) NewInvoice(server string, invoice domain.Invoice) error {
@@ -48,7 +55,6 @@ func (app *Application) GetServers() ([]string, error) {
 }
 
 func (app Application) Backup() error {
-
 	invoices, err := app.db.Export()
 	if err != nil {
 		return fmt.Errorf("Could not export: %v", err)

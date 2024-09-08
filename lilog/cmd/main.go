@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	backupOut, err := os.OpenFile("logs.txt", os.O_CREATE|os.O_WRONLY, 0660)
+	backupOut, err := os.OpenFile("logs.json", os.O_CREATE|os.O_WRONLY, 0660)
 	if err != nil {
 		log.Fatal(err)
 	}
