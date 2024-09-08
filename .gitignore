@@ -3,4 +3,5 @@ todos.txt
 *.pem
 node_modules/
 logs*
+*.db
 

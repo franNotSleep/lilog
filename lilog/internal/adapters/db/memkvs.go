@@ -58,6 +58,6 @@ func (m *MemKVSAdapter) Export() ([]domain.Invoice, error) {
 
 	}
 
-  m.kvs = make(map[string][]domain.Invoice)
+	m.kvs = make(map[string][]domain.Invoice)
 	return allInvoices, nil
 }
