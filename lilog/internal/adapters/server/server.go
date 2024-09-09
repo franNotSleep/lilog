@@ -112,7 +112,7 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.Conn) {
 	if rq.OpCode == OpRA {
 		invoices, err := a.api.GetInvoices(rq.Server)
 		if err != nil {
-      log.Println(err)
+			log.Println(err)
 			return
 		}
 
