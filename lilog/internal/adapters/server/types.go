@@ -141,8 +141,8 @@ func (s *SendReq) UnmarshalBinary(p []byte) error {
 type ReadReq struct {
 	OpCode        opCode
 	Server        string
-	From          uint64
-	To            uint64
+	From          int64
+	To            int64
 	KeepListening uint8
 }
 
