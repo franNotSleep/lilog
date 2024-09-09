@@ -86,7 +86,7 @@ func (m *SqliteAdapter) Save(server string, invoice domain.Invoice) error {
 }
 
 func (m *SqliteAdapter) Get(server string) ([]domain.Invoice, error) {
-	rows, err := m.db.Query("SELECT * FROM "+INVOICE_TABLE+" WHERE server=?", server)
+	rows, err := m.db.Query("SELECT * FROM "+INVOICE_TABLE+" WHERE server = ?", server)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func (m *SqliteAdapter) Export() ([]domain.Invoice, error) {
 }
 
 func (m *SqliteAdapter) GetBetween(server string, from time.Time, until time.Time) ([]domain.Invoice, error) {
-	rows, err := m.db.Query("SELECT * FROM "+INVOICE_TABLE+"WHERE server=? AND time BETWEEN ? AND ?;", server, from, until)
+	rows, err := m.db.Query("SELECT * FROM "+INVOICE_TABLE+" WHERE server = ? AND time BETWEEN ? AND ?;", server, from, until)
 	if err != nil {
 		return nil, err
 	}
