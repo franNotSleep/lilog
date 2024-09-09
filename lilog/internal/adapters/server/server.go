@@ -201,7 +201,7 @@ func (a Adapter) handleERQ(conn net.Conn, listenerForRemove chan int) {
 
 func (a *Adapter) getInvoices(rq ReadReq) ([]domain.Invoice, error) {
 	if rq.From != 0 && rq.To != 0 {
-		invoices, err := a.api.GetBetween(time.UnixMilli(rq.From), time.UnixMilli(rq.To))
+		invoices, err := a.api.GetBetween(rq.Server, time.UnixMilli(rq.From), time.UnixMilli(rq.To))
 		if err != nil {
 			return nil, err
 		}

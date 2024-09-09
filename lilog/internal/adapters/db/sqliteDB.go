@@ -145,8 +145,8 @@ func (m *SqliteAdapter) Export() ([]domain.Invoice, error) {
 	return invoices, nil
 }
 
-func (m *SqliteAdapter) GetBetween(from time.Time, until time.Time) ([]domain.Invoice, error) {
-	rows, err := m.db.Query("SELECT * FROM "+INVOICE_TABLE+"WHERE time BETWEEN ? AND ?;", from, until)
+func (m *SqliteAdapter) GetBetween(server string, from time.Time, until time.Time) ([]domain.Invoice, error) {
+	rows, err := m.db.Query("SELECT * FROM "+INVOICE_TABLE+"WHERE server=? AND time BETWEEN ? AND ?;", server, from, until)
 	if err != nil {
 		return nil, err
 	}

@@ -202,14 +202,14 @@ func (q *ReadReq) UnmarshalBinary(p []byte) error {
 	}
 	q.Server = strings.TrimRight(server, "\x00")
 
-	var from uint64
+	var from int64
 	err = binary.Read(r, binary.BigEndian, &from)
 	if err != nil {
 		return errors.New("Invalid Read Request.")
 	}
 	q.From = from
 
-	var to uint64
+	var to int64
 	err = binary.Read(r, binary.BigEndian, &to)
 	if err != nil {
 		return errors.New("Invalid Read Request.")

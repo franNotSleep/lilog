@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/frannotsleep/lilog/internal/application/core/domain"
 	"github.com/frannotsleep/lilog/internal/application/ports"
@@ -22,7 +23,7 @@ func NewApplication(db ports.DBPort, backup ports.BackupPort) *Application {
 	go func() {
 		for {
 			select {
-      case <-app.backup.C():
+			case <-app.backup.C():
 				invoices, err := app.db.Export()
 				if err != nil {
 					log.Println(err)
@@ -47,6 +48,11 @@ func (app *Application) NewInvoice(server string, invoice domain.Invoice) error 
 
 func (app *Application) GetInvoices(server string) ([]domain.Invoice, error) {
 	invoices, err := app.db.Get(server)
+	return invoices, err
+}
+
+func (app *Application) GetBetween(server string, from time.Time, until time.Time) ([]domain.Invoice, error) {
+	invoices, err := app.db.GetBetween(server, from, until)
 	return invoices, err
 }
 
