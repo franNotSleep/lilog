@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/frannotsleep/lilog/internal/application/core/domain"
 	"github.com/frannotsleep/lilog/internal/application/ports"
 )
 
@@ -110,7 +111,7 @@ func (a *Adapter) handleRRQ(bytes []byte, conn net.Conn) {
 	rq.UnmarshalBinary(bytes)
 
 	if rq.OpCode == OpRA {
-		invoices, err := a.api.GetInvoices(rq.Server)
+		invoices, err := a.getInvoices(rq)
 		if err != nil {
 			log.Println(err)
 			return
@@ -196,4 +197,22 @@ func (a Adapter) handleERQ(conn net.Conn, listenerForRemove chan int) {
 			}
 		}
 	}
+}
+
+func (a *Adapter) getInvoices(rq ReadReq) ([]domain.Invoice, error) {
+	if rq.From != 0 && rq.To != 0 {
+		invoices, err := a.api.GetInvoices(rq.Server)
+		if err != nil {
+			return nil, err
+		}
+
+		return invoices, nil
+	}
+
+	invoices, err := a.api.GetInvoices(rq.Server)
+	if err != nil {
+		return nil, err
+	}
+
+	return invoices, nil
 }
