@@ -23,7 +23,7 @@ func main() {
 	}
 	defer sqliteAdapter.Close()
 
-	backupAdapter := backup.NewBackupAdapter(5*time.Second, backupOut)
+	backupAdapter := backup.NewBackupAdapter(8 * time.Hour, backupOut)
 	api := api.NewApplication(sqliteAdapter, backupAdapter)
 
 	connConfig := server.ConnConfig{Address: "127.0.0.1:4119", AllowedClients: []string{"127.0.0.1:5697"}}

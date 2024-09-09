@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"log"
 	"os"
 
 	"github.com/frannotsleep/lilog/internal/application/core/domain"
@@ -13,42 +14,49 @@ type SqliteAdapter struct {
 	dbName string
 }
 
+const (
+	INVOICE_TABLE          = "invoices"
+)
+
+const (
+	YELLOW = "\033[33m"
+	GREEN  = "\033[32m"
+	RESET  = "\033[0m"
+)
+
 func NewSqliteAdapter(dbName string) (*SqliteAdapter, error) {
-	os.Remove(dbName)
+	err := os.Remove(dbName)
+	if err != nil {
+		return nil, err
+	}
 
 	db, err := sql.Open("sqlite3", dbName)
 	if err != nil {
 		return nil, err
 	}
 
-	db.Exec(`
-        CREATE TABLE invoices_requests (
+	log.Println(YELLOW + "Creating tables...⏳ " + RESET)
+	_, err = db.Exec(`
+        CREATE TABLE invoices (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server VARCHAR(255) NOT NULL,
+        time TIMESTAMP NOT NULL,
+        level iNT NOT NULL,
+        hostname VARCHAR(255) NOT NULL,
+        response_time INT NOT NULL,
+        message TEXT,
+        status_code INT NOT NULL,
         method VARCHAR(50) NOT NULL,
         url TEXT NOT NULL,
         remote_address VARCHAR(255),
         remote_port INT
-    );`)
+    );`, INVOICE_TABLE)
 
-	db.Exec(`
-        CREATE TABLE invoices_responses (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        status_code INT NOT NULL
-    );`)
+	if err != nil {
+		return nil, err
+	}
 
-	db.Exec(`
-        CREATE TABLE invoices (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        time TIMESTAMP NOT NULL,
-        level iNT NOT NULL,
-        pid INT NOT NULL,
-        hostname VARCHAR(255) NOT NULL,
-        response_time INT NOT NULL,
-        message TEXT,
-        request_id INT REFERENCES invoices_requests(id),
-        response_id INT REFERENCES invoices_responses(id)
-    );`)
-
+	log.Println(GREEN + "Tables have been created successfully✅" + RESET)
 	return &SqliteAdapter{db: db, dbName: dbName}, nil
 }
 
@@ -57,7 +65,23 @@ func (m *SqliteAdapter) Close() error {
 }
 
 func (m *SqliteAdapter) Save(server string, invoice domain.Invoice) error {
-	return nil
+	tx, err := m.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := m.db.Prepare("INSERT INTO " + INVOICE_TABLE + " (server, time, level, hostname, response_time, message, status_code, method, url, remote_address, remote_port) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(server, invoice.Time, invoice.Level, invoice.Hostname, invoice.ResponseTime, invoice.Message, invoice.InvoiceResponse.StatusCode, invoice.InvoiceRequest.Method, invoice.InvoiceRequest.URL, invoice.InvoiceRequest.RemoteAddress, invoice.InvoiceRequest.RemotePort)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (m *SqliteAdapter) Get(server string) ([]domain.Invoice, error) {
