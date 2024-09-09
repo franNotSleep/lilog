@@ -142,7 +142,8 @@ func (m *SqliteAdapter) Export() ([]domain.Invoice, error) {
 		return invoices, err
 	}
 
-	return invoices, nil
+	_, err = m.db.Exec("DELETE FROM " + INVOICE_TABLE)
+	return invoices, err
 }
 
 func (m *SqliteAdapter) GetBetween(server string, from time.Time, until time.Time) ([]domain.Invoice, error) {
